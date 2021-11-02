@@ -28,20 +28,23 @@ class ApartamentController extends Controller
             $filters = $request->all();
 
             array_walk($filters, function($v, $k) {
-                if( in_array($k, ["orderby", "perpage"]) ) {
+                if( in_array($k, ["orderby", "perpage", "convert_currency"]) ) {
                     return;
                 }
                 if( !in_array($k, $this->filters) ) {
                     Exceptions::badRequest("Filter '$k' is not allowed");
                 }
             });
+            $convertCurrency = $request->input("convert_currency");
+
             unset($filters["orderby"]);
             unset($filters["perpage"]);
+            unset($filters["convert_currency"]);
 
             $orderBy = $request->input("orderby") ?? [];
             $perPage = (int) $request->input("perpage") ?? 50;
 
-            return $this->json($this->repository->list($filters, $orderBy, $perPage));
+            return $this->json($this->repository->list($filters, $orderBy, $perPage, $convertCurrency));
         } catch( Exception $e ) {
             return $this->jsonException($e);
         }

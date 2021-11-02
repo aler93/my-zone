@@ -12,19 +12,30 @@ use Illuminate\Support\Str;
 
 class ApartamentRepository
 {
-    private array $like = ["slug", "description"];
+    private array $like   = ["slug", "description"];
+    private array $select = [
+        "apartaments.name",
+        "apartaments.price",
+        "apartaments.description",
+        "apartaments.rating",
+    ];
+    private array $orderBy;
 
     private ApartamentPropertiesRepository $propertiesRepository;
 
     public function __construct()
     {
         $this->propertiesRepository = new ApartamentPropertiesRepository();
+
+        $this->orderBy = array_values(Schema::getColumnListing('apartaments'));
     }
 
-    public function list(array $filter = [], array $orderBy = [], int $perPage = 50): array
+    public function list(array $filter = [], array $orderBy = [], int $perPage = 50, ?string $toCurrency = null): array
     {
         try {
-            $ap = Apartament::query();
+            //$ap = Apartament::query()->with("properties");
+            $ap = Apartament::select($this->select)
+                            ->join("categories", "categories.id", "=", "apartaments.id_category");
 
             foreach( $filter as $key => $val ) {
                 if( $key == "name" ) {
@@ -39,6 +50,12 @@ class ApartamentRepository
                 }
 
                 $ap->where($key, $opr, $val);
+
+                // Special case for self reference table,
+                // probably better offload into a function receiving the object and applying a "id_parent" condition
+                if( $key == "id_category" ) {
+                    $ap->orWhere("id_parent", "=", $val);
+                }
             }
 
             foreach( $orderBy as $order ) {
@@ -58,6 +75,11 @@ class ApartamentRepository
                 }
             }
 
+            if( $toCurrency ) {
+                // TODO: Convert to requested currency here
+                // Currently unable to register a key at fixer.io
+            }
+
             return $ap->paginate($perPage)->toArray();
         } catch( Exception $e ) {
             throw new Exception($e);
@@ -66,11 +88,11 @@ class ApartamentRepository
 
     public function store(array $data): array
     {
-        try{
+        try {
             DB::beginTransaction();
 
             $props = [];
-            if( isset( $data["properties"] )) {
+            if( isset($data["properties"]) ) {
                 $props = $data["properties"];
                 unset($data["properties"]);
             }
@@ -83,7 +105,7 @@ class ApartamentRepository
             DB::commit();
 
             return $ap->toArray();
-        } catch( Exception $e) {
+        } catch( Exception $e ) {
             DB::rollBack();
             throw new Exception($e);
         }
@@ -91,9 +113,9 @@ class ApartamentRepository
 
     public function update(int $id, array $data)
     {
-        try{
+        try {
             $props = [];
-            if( isset( $data["properties"] )) {
+            if( isset($data["properties"]) ) {
                 $props = $data["properties"];
                 unset($data["properties"]);
             }
@@ -104,20 +126,20 @@ class ApartamentRepository
             $this->propertiesRepository->store($id, $props);
 
             return $data;
-        } catch( Exception $e) {
+        } catch( Exception $e ) {
             throw new Exception($e);
         }
     }
 
-    public function updateRating(int $idApartament):float
+    public function updateRating(int $idApartament): float
     {
-        try{
+        try {
             DB::beginTransaction();
 
             $ratings = ApartamentRating::where("id_apartament", "=", $idApartament)->get();
 
             $total = 0.0;
-            foreach($ratings as $r) {
+            foreach( $ratings as $r ) {
                 $total += (float) $r->rating;
             }
             $avg = ($total / $ratings->count());
@@ -127,7 +149,7 @@ class ApartamentRepository
             DB::commit();
 
             return $avg;
-        } catch( Exception $e) {
+        } catch( Exception $e ) {
             DB::rollBack();
             throw new Exception($e);
         }
