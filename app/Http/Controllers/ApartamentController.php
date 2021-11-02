@@ -24,13 +24,22 @@ class ApartamentController extends Controller
     {
         try {
             $filters = $request->all();
+
             array_walk($filters, function($v, $k) {
+                if (in_array($k, ["orderby", "perpage"])) {
+                    return;
+                }
                 if( !in_array($k, $this->filters) ) {
                     Exceptions::badRequest("Filter '$k' is not allowed");
                 }
             });
+            unset($filters["orderby"]);
+            unset($filters["perpage"]);
 
-            return $this->json($this->repository->list($filters));
+            $orderBy = $request->input("orderby") ?? [];
+            $perPage = (int) $request->input("perpage") ?? 50;
+
+            return $this->json($this->repository->list($filters, $orderBy, $perPage));
         } catch( Exception $e ) {
             return $this->jsonException($e);
         }
