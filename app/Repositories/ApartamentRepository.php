@@ -3,23 +3,29 @@
 namespace App\Repositories;
 
 use App\Models\Apartament;
+use App\Models\ApartamentProperty;
 use App\Models\ApartamentRating;
 use App\Support\Exceptions;
 use Exception;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ApartamentRepository
 {
-    private array $like   = ["slug", "description"];
+    private array $like   = ["slug", "description", "location"];
     private array $select = [
-        "apartaments.name",
-        "apartaments.price",
-        "apartaments.description",
-        "apartaments.rating",
-    ];
+            "apartaments.name",
+            "apartaments.price",
+            "apartaments.description",
+            "apartaments.rating",
+            "apartaments_properties.property",
+            "apartaments_properties.value",
+        ];
+
     private array $orderBy;
+    private array $specialCols;
 
     private ApartamentPropertiesRepository $propertiesRepository;
 
@@ -27,15 +33,19 @@ class ApartamentRepository
     {
         $this->propertiesRepository = new ApartamentPropertiesRepository();
 
-        $this->orderBy = array_values(Schema::getColumnListing('apartaments'));
+        $this->orderBy     = array_values(Schema::getColumnListing('apartaments'));
+        $this->specialCols = array_column(ApartamentProperty::select("property")->distinct()->get()->toArray(), "property");
     }
 
     public function list(array $filter = [], array $orderBy = [], int $perPage = 50, ?string $toCurrency = null): array
     {
         try {
-            //$ap = Apartament::query()->with("properties");
-            $ap = Apartament::select($this->select)
-                            ->join("categories", "categories.id", "=", "apartaments.id_category");
+            $ap = Apartament::query()->join("apartaments_properties", "apartaments_properties.id_apartament", "=", "apartaments.id")
+                                     ->with("properties");
+            /*$ap = Apartament::select(array_merge($this->select))
+                            ->join("categories", "categories.id", "=", "apartaments.id_category")
+                            ->join("apartaments_properties", "apartaments_properties.id_apartament", "=", "apartaments.id")
+                            ->with("properties");*/
 
             foreach( $filter as $key => $val ) {
                 if( $key == "name" ) {
@@ -49,6 +59,13 @@ class ApartamentRepository
                     $val = "%" . $val . "%";
                 }
 
+                if( in_array($key, $this->specialCols) ) {
+                    $ap->where("apartaments_properties.property", "=", $key)
+                       ->where("apartaments_properties.value", $opr, $val);
+
+                    continue;
+                }
+
                 $ap->where($key, $opr, $val);
 
                 // Special case for self reference table,
@@ -58,13 +75,19 @@ class ApartamentRepository
                 }
             }
 
+            $specialOrder = [];
             foreach( $orderBy as $order ) {
                 if( !in_array($order[0], ["+", "-"]) ) {
                     $order = "+" . $order;
                 }
                 $col = substr($order, 1);
 
-                if( !in_array($col, array_values(Schema::getColumnListing('apartaments'))) ) {
+                if( in_array($col, $this->specialCols) ) {
+                    $specialOrder[] = $order;
+                    continue;
+                }
+
+                if( !in_array($col, $this->orderBy) ) {
                     Exceptions::badRequest("Column '$col' doesn't exist");
                 }
 
@@ -80,11 +103,30 @@ class ApartamentRepository
                 // Currently unable to register a key at fixer.io
             }
 
-            return $ap->paginate($perPage)->toArray();
+            $list = $ap->paginate($perPage)->toArray();
+
+            /*if( count($specialOrder) > 0 ) {
+                $list = $this->applySpecialOrderBy($list, $specialOrder);
+            }*/
+
+            return $list;
         } catch( Exception $e ) {
             throw new Exception($e);
         }
     }
+
+    /*private function applySpecialOrderBy($object, array $order): array
+    {
+        $toOrder = $object["data"];
+
+        foreach($order as $o) {
+            dd($toOrder);
+            array_multisort($order["properties"]);
+        }
+
+        $object["data"] = $toOrder;
+        return $object;
+    }*/
 
     public function store(array $data): array
     {

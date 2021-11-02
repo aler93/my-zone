@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 class ApartamentController extends Controller
 {
     private ApartamentRepository $repository;
-    private array                $filters = ["name", "price", "description", "id_category"];
+    private array                $filters = ["name", "price", "description", "id_category", "size", "location"];
 
     public function __construct()
     {
