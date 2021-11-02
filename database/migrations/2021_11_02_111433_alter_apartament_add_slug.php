@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AlterAparamentAddCategoryFk extends Migration
+class AlterApartamentAddSlug extends Migration
 {
     /**
      * Run the migrations.
@@ -14,11 +14,7 @@ class AlterAparamentAddCategoryFk extends Migration
     public function up()
     {
         Schema::table("apartaments", function(Blueprint $table){
-            $table->foreignId("id_category")
-                  ->references("id")
-                  ->on("categories")
-                  ->restrictOnDelete()
-                  ->cascadeOnDelete();
+            $table->string("slug")->nullable();
         });
     }
 
@@ -30,7 +26,7 @@ class AlterAparamentAddCategoryFk extends Migration
     public function down()
     {
         Schema::table("apartaments", function(Blueprint $table){
-            $table->dropColumn("id_category");
+            $table->dropColumn("slug");
         });
     }
 }

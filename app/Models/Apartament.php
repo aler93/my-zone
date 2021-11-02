@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Apartament extends Model
 {
@@ -32,5 +33,19 @@ class Apartament extends Model
     public function properties()
     {
         return $this->hasMany("App\Models\ApartamentProperty", "id_apartament", "id");
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::creating(function(Apartament $apartament) {
+            $slug = Str::slug($apartament->name);
+
+            $count = static::whereRaw("slug RLIKE '^{$slug}(-[0-9]+)?$'")->count();
+
+            $apartament->slug = $count ? "{$slug}-{$count}" : $slug;
+        });
+
     }
 }
