@@ -3,6 +3,7 @@
 use App\Http\Controllers\ApartamentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\UserSubscriptionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -37,4 +38,8 @@ Route::prefix("/categories")->group(function(){
     Route::post("/", [CategoryController::class, "store"]);
     Route::patch("/{id}", [CategoryController::class, "update"]);
     Route::delete("/{id}", [CategoryController::class, "destroy"]);
+});
+
+Route::middleware("checkToken")->group(function(){
+    Route::post("/subscribe", [UserSubscriptionController::class, "store"]);
 });
