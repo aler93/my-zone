@@ -5,14 +5,43 @@ namespace App\Repositories;
 use App\Models\Apartament;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ApartamentRepository
 {
+    private array $like = ["slug", "description"];
+
     private ApartamentPropertiesRepository $propertiesRepository;
 
     public function __construct()
     {
         $this->propertiesRepository = new ApartamentPropertiesRepository();
+    }
+
+    public function list(array $filter = []): array
+    {
+        try {
+            $ap = Apartament::query();
+
+            foreach( $filter as $key => $val ) {
+                if( $key == "name" ) {
+                    $key = "slug";
+                    $val = Str::slug($val);
+                }
+
+                $opr = "=";
+                if( in_array($key, $this->like) ) {
+                    $opr = "like";
+                    $val = "%" . $val . "%";
+                }
+
+                $ap->where($key, $opr, $val);
+            }
+
+            return $ap->get()->toArray();
+        } catch( Exception $e ) {
+            throw new Exception($e);
+        }
     }
 
     public function store(array $data): array
