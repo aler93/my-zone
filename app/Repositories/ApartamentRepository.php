@@ -43,8 +43,6 @@ class ApartamentRepository
     public function update(int $id, array $data)
     {
         try{
-            DB::beginTransaction();
-
             $props = [];
             if( isset( $data["properties"] )) {
                 $props = $data["properties"];
@@ -56,11 +54,8 @@ class ApartamentRepository
             $this->propertiesRepository->destroy($id);
             $this->propertiesRepository->store($id, $props);
 
-            DB::commit();
-
             return $data;
         } catch( Exception $e) {
-            DB::rollBack();
             throw new Exception($e);
         }
     }
