@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ApartamentRateRequest;
 use App\Http\Requests\ApartamentRequest;
 use App\Models\Apartament;
+use App\Models\ApartamentRating;
 use App\Repositories\ApartamentRepository;
 use App\Support\Exceptions;
 use Exception;
@@ -13,7 +15,7 @@ use Illuminate\Http\Request;
 class ApartamentController extends Controller
 {
     private ApartamentRepository $repository;
-    private array $filters = ["name", "price", "description", "id_category"];
+    private array                $filters = ["name", "price", "description", "id_category"];
 
     public function __construct()
     {
@@ -26,7 +28,7 @@ class ApartamentController extends Controller
             $filters = $request->all();
 
             array_walk($filters, function($v, $k) {
-                if (in_array($k, ["orderby", "perpage"])) {
+                if( in_array($k, ["orderby", "perpage"]) ) {
                     return;
                 }
                 if( !in_array($k, $this->filters) ) {
@@ -85,6 +87,34 @@ class ApartamentController extends Controller
             Apartament::whereId($id)->forceDelete();
 
             return $this->json([], 204);
+        } catch( Exception $e ) {
+            return $this->jsonException($e);
+        }
+    }
+
+    public function rate(ApartamentRateRequest $request)
+    {
+        try {
+            $ar = ApartamentRating::where("id_user", "=", $request->user->id)
+                                  ->where("id_apartament", "=", $request->input("id_apartament"))
+                                  ->first();
+
+            if( !is_null($ar) ) {
+                // Allow user to update the rating?
+                Exceptions::conflict("You already rated this apartament");
+            }
+
+            $data = [
+                "id_user"       => $request->user->id,
+                "id_apartament" => $request->input("id_apartament"),
+                "rating"        => $request->input("rating")
+            ];
+            $new  = new ApartamentRating($data);
+            $new->save();
+
+            $avg = $this->repository->updateRating($request->input("id_apartament"));
+
+            return $this->json(["average" => $avg]);
         } catch( Exception $e ) {
             return $this->jsonException($e);
         }

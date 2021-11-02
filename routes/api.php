@@ -26,6 +26,10 @@ Route::prefix("/apartaments")->group(function(){
     Route::post("/", [ApartamentController::class, "store"]);
     Route::put("/{id}", [ApartamentController::class, "update"]);
     Route::delete("/{id}", [ApartamentController::class, "destroy"]);
+
+    Route::middleware("checkToken")->group(function(){
+        Route::post("/rate", [ApartamentController::class, "rate"]);
+    });
 });
 
 Route::prefix("/categories")->group(function(){

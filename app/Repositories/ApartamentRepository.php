@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Apartament;
+use App\Models\ApartamentRating;
 use App\Support\Exceptions;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -104,6 +105,30 @@ class ApartamentRepository
 
             return $data;
         } catch( Exception $e) {
+            throw new Exception($e);
+        }
+    }
+
+    public function updateRating(int $idApartament):float
+    {
+        try{
+            DB::beginTransaction();
+
+            $ratings = ApartamentRating::where("id_apartament", "=", $idApartament)->get();
+
+            $total = 0.0;
+            foreach($ratings as $r) {
+                $total += (float) $r->rating;
+            }
+            $avg = ($total / $ratings->count());
+
+            Apartament::where("id", "=", $idApartament)->update(["rating" => $avg]);
+
+            DB::commit();
+
+            return $avg;
+        } catch( Exception $e) {
+            DB::rollBack();
             throw new Exception($e);
         }
     }
