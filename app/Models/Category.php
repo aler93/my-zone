@@ -16,4 +16,12 @@ class Category extends Model
         "name",
         "id_parent",
     ];
+    protected $hidden = [
+        "id_parent"
+    ];
+
+    public function parent()
+    {
+        return $this->hasOne("App\Models\Category", "id", "id_parent");
+    }
 }

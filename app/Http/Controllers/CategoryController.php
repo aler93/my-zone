@@ -13,7 +13,7 @@ class CategoryController extends Controller
     public function list(): JsonResponse
     {
         try {
-            return $this->json(Category::all());
+            return $this->json(Category::with("parent")->get());
         } catch( Exception $e ) {
             return $this->jsonException($e);
         }

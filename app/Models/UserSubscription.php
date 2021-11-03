@@ -9,7 +9,7 @@ class UserSubscription extends Model
 {
     use HasFactory;
 
-    protected $table = "user_subscription";
+    protected $table    = "user_subscription";
     protected $fillable = [
         "id_user",
         "id_apartament",
