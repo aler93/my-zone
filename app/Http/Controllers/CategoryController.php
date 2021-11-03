@@ -29,7 +29,7 @@ class CategoryController extends Controller
                 Exceptions::conflict("Category '{$request->input("name")}' already exists");
             }
 
-            $cat = new Category($request->only(["name"]));
+            $cat = new Category($request->only(["name", "id_parent"]));
             $cat->save();
 
             return $this->json($cat, 201);
@@ -50,7 +50,7 @@ class CategoryController extends Controller
                 Exceptions::conflict("Category '{$request->input("name")}' already exists");
             }
 
-            Category::whereId($id)->update($request->only(["name"]));
+            Category::whereId($id)->update($request->only(["name", "id_parent"]));
 
             return $this->json([], 204);
         } catch( Exception $e ) {
